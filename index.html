@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -80,8 +81,9 @@
             <button class="primary-btn" id="searchBtn" onclick="searchCustomers()" style="width: auto; margin-bottom: 0; padding: 0 20px;">بحث</button>
         </div>
 
-        <div id="search-offline-block" class="search-offline-block" style="display: none;">
+        <div id="search-offline-block" class="search-offline-block" style="display: none; position: relative;">
             🚫 البحث غير متاح في وضع عدم الاتصال (أوفلاين)
+            <button id="dismiss-search-block" class="dismiss-status-btn" onclick="dismissSearchBlock()" style="background: rgba(231,76,60,0.2); color: #c0392b; right: 10px; left: auto;">×</button>
         </div>
 
         <div class="dashboard-top-actions"><button class="primary-btn top-action-btn" onclick="toggleAddForm()">إضافة زبون</button><button class="secondary-btn top-action-btn" onclick="switchAccount()">تبديل حساب</button></div>
