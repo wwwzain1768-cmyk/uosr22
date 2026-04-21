@@ -51,13 +51,13 @@ function goToDashboardDirect() {
     updateSearchAvailability();
 }
 
-
 function calculateEndDateFromStartDate(startDate) {
     if (!startDate) return "";
-    let start = new Date(startDate);
+    let parts = startDate.split('-');
+    let start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     let endDate = new Date(start);
     endDate.setDate(start.getDate() + 30);
-    return endDate.toISOString().split('T')[0];
+    return `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 }
 
 function updateEndDateFromStartDate() {
@@ -71,9 +71,11 @@ function updateSearchAvailability() {
     const searchBtn = document.getElementById('searchBtn');
     const block = document.getElementById('search-offline-block');
     if (!searchInput || !searchBtn || !block) return;
+    const formGroupSearch = searchInput.parentElement;
 
     if (!navigator.onLine) {
         // وضع عدم الاتصال: حجب البحث
+        formGroupSearch.style.display = 'none';
         searchInput.disabled = true;
         searchInput.value = "";
         searchBtn.disabled = true;
@@ -83,6 +85,7 @@ function updateSearchAvailability() {
         items.forEach(item => { item.style.display = ''; });
     } else {
         // وضع الاتصال: فتح البحث
+        formGroupSearch.style.display = 'flex';
         searchInput.disabled = false;
         searchBtn.disabled = false;
         block.style.display = 'none';
@@ -118,7 +121,6 @@ function updateNetworkStatus(status) {
 window.dismissNetworkStatus = function() {
     networkBannerDismissed = true;
     document.getElementById('network-status').style.display = 'none';
-    // ملاحظة: لا نغير حالة حجب البحث هنا - يبقى الحجب طالما أوفلاين
 }
 
 window.addEventListener('online', () => {
@@ -224,7 +226,16 @@ async function processSyncQueue() {
     } catch (error) {
         console.error("Sync failed", error);
         isSyncing = false;
-        updateNetworkStatus('offline');
+        if (!navigator.onLine) {
+            updateNetworkStatus('offline');
+        } else {
+            const banner = document.getElementById('network-status');
+            const bannerText = document.getElementById('network-status-text');
+            banner.className = 'status-banner offline';
+            banner.style.display = 'block';
+            bannerText.innerText = 'فشلت المزامنة، سيتم المحاولة لاحقاً';
+            updateSearchAvailability();
+        }
     }
 }
 
@@ -277,6 +288,8 @@ window.loginWithGoogle = function() {
 };
 
 onAuthStateChanged(auth, async (user) => {
+    updateSearchAvailability();
+    
     if(user) {
         document.getElementById('auth-screen').style.display = 'none';
         const savedLogin = await localforage.getItem('savedTowerLogin');
@@ -451,7 +464,10 @@ window.toggleAddForm = function() {
         formSection.style.display = 'block';
         if (editCustomerId === null) {
             let today = new Date();
-            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, '0');
+            let day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('startDate').value = `${year}-${month}-${day}`;
             updateEndDateFromStartDate();
         }
     } else {
@@ -481,6 +497,11 @@ window.addCustomer = async function() {
     }
 
     if (editCustomerId === null) {
+        let today = new Date();
+        let year = today.getFullYear();
+        let month = String(today.getMonth() + 1).padStart(2, '0');
+        let day = String(today.getDate()).padStart(2, '0');
+        let dateStr = `${year}-${month}-${day}`;
         let newCustomer = {
             id: Date.now(),
             towerCode: currentLoggedTowerCode,
@@ -490,7 +511,7 @@ window.addCustomer = async function() {
             endDate: endDate,
             paid: 0,
             debts: 0,
-            history: [{date: new Date().toISOString().split('T')[0], action: 'تسجيل اشتراك', amount: parseFloat(price)}],
+            history: [{date: dateStr, action: 'تسجيل اشتراك', amount: parseFloat(price)}],
             isPaid: false
         };
         allCustomersData.push(newCustomer);
@@ -547,7 +568,8 @@ window.renderCustomers = function() {
     towerCustomers.sort((a, b) => {
         let getRemainingMs = (dateString) => {
             if (!dateString) return 0;
-            let end = new Date(dateString);
+            let parts = dateString.split('-');
+            let end = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             end.setHours(23, 59, 59, 999);
             return end - new Date();
         };
@@ -579,7 +601,8 @@ window.renderCustomers = function() {
         let diffMs = 0;
         let isExpired = true;
         if (customer.endDate) {
-            let endDateTime = new Date(customer.endDate);
+            let parts = customer.endDate.split('-');
+            let endDateTime = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             endDateTime.setHours(23, 59, 59, 999);
             let now = new Date();
             diffMs = endDateTime - now;
@@ -687,8 +710,9 @@ window.paySubscription = function(id) {
         if (customer) {
             customer.paid = (customer.paid || 0) + parseFloat(amount);
             customer.history = customer.history || [];
-            let today = new Date().toISOString().split('T')[0];
-            customer.history.push({date: today, action: `تسديد مبلغ`, amount: parseFloat(amount)});
+            let today = new Date();
+            let todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            customer.history.push({date: todayStr, action: `تسديد مبلغ`, amount: parseFloat(amount)});
             
             await saveOperationToQueue('edit', id, customer);
             await localforage.setItem('cachedCustomers', allCustomersData);
@@ -710,12 +734,16 @@ window.renewSubscription = function(id) {
             customer.debts = (customer.debts || 0) + parseFloat(amount);
             
             let start = new Date();
-            customer.startDate = start.toISOString().split('T')[0];
+            let year = start.getFullYear();
+            let month = String(start.getMonth() + 1).padStart(2, '0');
+            let day = String(start.getDate()).padStart(2, '0');
+            let startStr = `${year}-${month}-${day}`;
+            
+            customer.startDate = startStr;
             customer.endDate = calculateEndDateFromStartDate(customer.startDate);
 
             customer.history = customer.history || [];
-            let todayStr = new Date().toISOString().split('T')[0];
-            customer.history.push({date: todayStr, action: `تجديد الاشتراك`, amount: parseFloat(amount)});
+            customer.history.push({date: startStr, action: `تجديد الاشتراك`, amount: parseFloat(amount)});
             
             await saveOperationToQueue('edit', id, customer);
             await localforage.setItem('cachedCustomers', allCustomersData);
@@ -736,8 +764,9 @@ window.addDebt = function(id) {
         if (customer) {
             customer.debts = (customer.debts || 0) + parseFloat(amount);
             customer.history = customer.history || [];
-            let today = new Date().toISOString().split('T')[0];
-            customer.history.push({date: today, action: `إضافة دين`, amount: parseFloat(amount)});
+            let today = new Date();
+            let todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            customer.history.push({date: todayStr, action: `إضافة دين`, amount: parseFloat(amount)});
             
             await saveOperationToQueue('edit', id, customer);
             await localforage.setItem('cachedCustomers', allCustomersData);
@@ -756,8 +785,9 @@ window.addNote = function(id) {
         let customer = allCustomersData.find(c => c.id === id);
         if (customer) {
             customer.history = customer.history || [];
-            let today = new Date().toISOString().split('T')[0];
-            customer.history.push({date: today, action: `ملاحظة: ${note}`, amount: ""});
+            let today = new Date();
+            let todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            customer.history.push({date: todayStr, action: `ملاحظة: ${note}`, amount: ""});
             
             await saveOperationToQueue('edit', id, customer);
             await localforage.setItem('cachedCustomers', allCustomersData);
@@ -798,7 +828,6 @@ window.editCustomer = function(id) {
         window.scrollTo(0, 0);
     }
 }
-
 
 document.getElementById('startDate').addEventListener('change', updateEndDateFromStartDate);
 
