@@ -6,8 +6,8 @@ body { background-color: #e9ecef; color: #333; display: flex; justify-content: c
 /* شريط حالة الاتصال */
 .status-banner { position: fixed; top: 0; left: 0; width: 100%; text-align: center; padding: 10px 46px 10px 12px; color: white; font-weight: bold; z-index: 10002; transition: background-color 0.3s; font-size: 1.1rem; }
 .status-banner.online { background-color: #27ae60; }
-.status-banner.offline { background-color: #e74c3c; display: block !important; }
-.status-banner.syncing { background-color: #f39c12; display: block !important; }
+.status-banner.offline { background-color: #e74c3c; }
+.status-banner.syncing { background-color: #f39c12; }
 
 /* تصميم الحاويات */
 .main-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
