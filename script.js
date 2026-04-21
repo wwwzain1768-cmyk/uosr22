@@ -536,9 +536,6 @@ window.addCustomer = async function() {
 }
 
 window.searchCustomers = function() {
-    // لا يعمل البحث في وضع أوفلاين
-    if (!navigator.onLine) return;
-
     let input = document.getElementById('searchInput').value.toLowerCase();
     let items = document.querySelectorAll('.customer-item');
     items.forEach(item => {
