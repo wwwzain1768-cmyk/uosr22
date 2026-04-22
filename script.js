@@ -1,4 +1,3 @@
-// script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
@@ -51,7 +50,6 @@ function goToDashboardDirect() {
     window.renderCustomers();
     updateSearchAvailability();
 }
-
 
 function calculateEndDateFromStartDate(startDate) {
     if (!startDate) return "";
@@ -560,7 +558,9 @@ window.renderCustomers = function() {
         let getRemainingMs = (dateString) => {
             if (!dateString) return 0;
             let end = new Date(dateString);
-            end.setHours(23, 59, 59, 999);
+            if (dateString.length <= 10) {
+                end.setHours(23, 59, 59, 999);
+            }
             return end - new Date();
         };
         return getRemainingMs(a.endDate) - getRemainingMs(b.endDate);
@@ -592,7 +592,9 @@ window.renderCustomers = function() {
         let isExpired = true;
         if (customer.endDate) {
             let endDateTime = new Date(customer.endDate);
-            endDateTime.setHours(23, 59, 59, 999);
+            if (customer.endDate.length <= 10) {
+                endDateTime.setHours(23, 59, 59, 999);
+            }
             let now = new Date();
             diffMs = endDateTime - now;
             isExpired = diffMs <= 0;
@@ -643,6 +645,9 @@ window.renderCustomers = function() {
             }
         }
 
+        let displayStartDate = customer.startDate ? customer.startDate.split('T')[0] : "";
+        let displayEndDate = customer.endDate ? customer.endDate.split('T')[0] : "";
+
         itemDiv.innerHTML = `
             <div class="customer-header">
                 <div class="customer-name-wrap">
@@ -654,8 +659,8 @@ window.renderCustomers = function() {
             <div class="customer-details" id="details-${customer.id}">
                 <div class="customer-info">
                     <p><strong>الدين:</strong> <span style="color:#e74c3c; font-weight:bold;">${currentDebt} دينار</span></p>
-                    <p><strong>تاريخ البدء:</strong> ${customer.startDate}</p>
-                    <p><strong>تاريخ الانتهاء:</strong> ${customer.endDate}</p>
+                    <p><strong>تاريخ البدء:</strong> ${displayStartDate}</p>
+                    <p><strong>تاريخ الانتهاء:</strong> ${displayEndDate}</p>
                 </div>
                 <div class="payment-action" style="margin-top: 15px;">
                     <button class="renew-btn" onclick="renewSubscription(${customer.id})">تجديد الاشتراك</button>
@@ -722,11 +727,13 @@ window.renewSubscription = function(id) {
             customer.debts = (customer.debts || 0) + parseFloat(amount);
             
             let start = new Date();
-            customer.startDate = start.toISOString().split('T')[0];
-            customer.endDate = calculateEndDateFromStartDate(customer.startDate);
+            customer.startDate = start.toISOString();
+            let end = new Date(start);
+            end.setDate(end.getDate() + 30);
+            customer.endDate = end.toISOString();
 
             customer.history = customer.history || [];
-            let todayStr = new Date().toISOString().split('T')[0];
+            let todayStr = start.toISOString().split('T')[0];
             customer.history.push({date: todayStr, action: `تجديد الاشتراك`, amount: parseFloat(amount)});
             
             await saveOperationToQueue('edit', id, customer);
@@ -800,8 +807,8 @@ window.editCustomer = function(id) {
     if (customer) {
         document.getElementById('customerName').value = customer.name;
         document.getElementById('customerPrice').value = customer.price;
-        document.getElementById('startDate').value = customer.startDate || "";
-        document.getElementById('endDate').value = customer.endDate || "";
+        document.getElementById('startDate').value = customer.startDate ? customer.startDate.split('T')[0] : "";
+        document.getElementById('endDate').value = customer.endDate ? customer.endDate.split('T')[0] : "";
 
         editCustomerId = id;
         document.getElementById('saveCustomerBtn').innerText = "تحديث بيانات الزبون";
@@ -810,7 +817,6 @@ window.editCustomer = function(id) {
         window.scrollTo(0, 0);
     }
 }
-
 
 document.getElementById('startDate').addEventListener('change', updateEndDateFromStartDate);
 
