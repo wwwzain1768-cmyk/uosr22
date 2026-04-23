@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import firebaseConfig from './firebase-applet-config.json' with { type: 'json' };
 
 // تسجيل Service Worker
 if ('serviceWorker' in navigator) {
@@ -10,18 +11,10 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBcFdnGgYs8dAbp_fF2Xy9jOa5_avE0l9o",
-    authDomain: "kjjkj-21259.firebaseapp.com",
-    projectId: "kjjkj-21259",
-    storageBucket: "kjjkj-21259.firebasestorage.app",
-    messagingSenderId: "424983926852",
-    appId: "1:424983926852:web:0e2dfc9d1f0fa2a0564411"
-};
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
 
 let currentLoggedTowerCode = "";
 let currentLoggedTowerName = "";
@@ -367,7 +360,7 @@ window.showInputModal = function(msg, onConfirmCallback) {
     actions.innerHTML = "";
 
     let btnYes = document.createElement('button');
-    btnYes.className = 'modal-btn btn-confirm';
+        btnYes.className = 'modal-btn btn-confirm';
     btnYes.innerText = 'تأكيد';
     btnYes.onclick = () => { 
         let val = document.getElementById('inputModalValue').value;
@@ -675,7 +668,7 @@ window.renderCustomers = function() {
         itemDiv.className = 'customer-item';
         
         itemDiv.onclick = function(e) {
-            if (e.target.tagName.toLowerCase() === 'button') return;
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'textarea') return;
             let details = document.getElementById('details-' + customer.id);
             if (details.classList.contains('show')) {
                 details.classList.remove('show');
@@ -712,6 +705,8 @@ window.renderCustomers = function() {
         let displayStartDate = formatDateTimeUI(customer.startDate);
         let displayEndDate = formatDateTimeUI(customer.endDate);
 
+        let safeNote = (customer.note || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
         itemDiv.innerHTML = `
             <div class="customer-header">
                 <div class="customer-name-wrap">
@@ -721,6 +716,13 @@ window.renderCustomers = function() {
                 <span style="font-size: 0.9rem; color: ${isExpired ? '#e74c3c' : '#27ae60'}">${remainingText}</span>
             </div>
             <div class="customer-details" id="details-${customer.id}">
+                <div class="top-note-section" style="margin-bottom: 15px; padding: 10px; background: #ecf0f1; border-radius: 8px;">
+                    <button class="note-btn" onclick="toggleInlineNote(event)" style="margin-bottom: 0;">ملاحظات خاصة</button>
+                    <div class="inline-note-container" style="display: none; margin-top: 10px;">
+                        <textarea class="inline-note-text" style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #bdc3c7; border-radius: 5px; outline: none; font-size: 1rem; resize: none; overflow: hidden; font-family: inherit;" onclick="event.stopPropagation()" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${safeNote}</textarea>
+                        <button class="primary-btn" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 1.1rem; margin-bottom: 0;" onclick="saveInlineNote(${customer.id}, event)">حفظ الملاحظة</button>
+                    </div>
+                </div>
                 <div class="customer-info">
                     <p><strong>الدين:</strong> <span style="color:#e74c3c; font-weight:bold;">${currentDebt} دينار</span></p>
                     <p><strong>تاريخ البدء:</strong> ${displayStartDate}</p>
@@ -728,7 +730,6 @@ window.renderCustomers = function() {
                 </div>
                 <div class="payment-action" style="margin-top: 15px;">
                     <button class="renew-btn" onclick="renewSubscription(${customer.id})">تجديد الاشتراك</button>
-                    <button class="note-btn" onclick="addNote(${customer.id})">ملاحظات</button>
                     <button class="add-debt-btn" onclick="addDebt(${customer.id})">إضافة دين</button>
                     ${paymentHTML}
                     <button class="edit-btn" onclick="editCustomer(${customer.id})">تعديل</button>
@@ -744,7 +745,7 @@ window.renderCustomers = function() {
             let expDiv = itemDiv.cloneNode(true);
             expDiv.innerHTML = itemDiv.innerHTML.replace(`id="details-${customer.id}"`, `id="details-exp-${customer.id}"`);
             expDiv.onclick = function(e) {
-                if (e.target.tagName.toLowerCase() === 'button') return;
+                if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'textarea') return;
                 let details = document.getElementById('details-exp-' + customer.id);
                 if (details.classList.contains('show')) details.classList.remove('show');
                 else details.classList.add('show');
@@ -884,6 +885,38 @@ window.editCustomer = function(id) {
 
 
 document.getElementById('startDate').addEventListener('change', updateEndDateFromStartDate);
+
+window.toggleInlineNote = function(e) {
+    e.stopPropagation();
+    let container = e.target.nextElementSibling;
+    if(container.style.display === 'none') {
+        container.style.display = 'block';
+        let textarea = container.querySelector('textarea');
+        if(textarea) {
+            textarea.style.height = ''; 
+            textarea.style.height = textarea.scrollHeight + 'px';
+            textarea.focus();
+        }
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+window.saveInlineNote = async function(id, e) {
+    e.stopPropagation();
+    let textarea = e.target.previousElementSibling;
+    let newNote = textarea.value;
+    
+    let customer = allCustomersData.find(c => c.id === id);
+    if(customer) {
+        customer.note = newNote;
+        await saveOperationToQueue('edit', id, customer);
+        await localforage.setItem('cachedCustomers', allCustomersData);
+        window.showModal("تم حفظ الملاحظة بنجاح!", "alert");
+        window.renderCustomers();
+        if (navigator.onLine) processSyncQueue();
+    }
+}
 
 window.deleteCustomer = function(id) {
     window.showModal("هل تود الحذف بالتأكيد؟", "confirm", async () => {
