@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -10,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 </head>
 <body>
-    <div id="network-status" class="status-banner" style="display: none;"><span id="network-status-text"></span><button id="dismiss-network-status" class="dismiss-status-btn" onclick="dismissNetworkStatus()">×</button></div>
+    <div id="network-status" class="status-badge" style="display: none;"><span id="network-status-text"></span></div>
 
     <div id="auth-screen" class="greeting-screen" style="z-index: 10001; flex-direction: column; display: flex;">
         <div class="greeting-box">
@@ -79,11 +78,6 @@
         <div class="form-group" style="display: flex; gap: 10px; padding: 0 30px; margin-bottom: 20px;">
             <input type="text" id="searchInput" placeholder="بحث عن زبون..." onkeyup="searchCustomers()" style="flex: 1; padding: 15px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 1.1rem; text-align: right; outline: none;">
             <button class="primary-btn" id="searchBtn" onclick="searchCustomers()" style="width: auto; margin-bottom: 0; padding: 0 20px;">بحث</button>
-        </div>
-
-        <div id="search-offline-block" class="search-offline-block" style="display: none; position: relative;">
-            🚫 البحث غير متاح في وضع عدم الاتصال (أوفلاين)
-            <button id="dismiss-search-block" class="dismiss-status-btn" onclick="dismissSearchBlock()" style="background: rgba(231,76,60,0.2); color: #c0392b; right: 10px; left: auto;">×</button>
         </div>
 
         <div class="dashboard-top-actions"><button class="primary-btn top-action-btn" onclick="toggleAddForm()">إضافة زبون</button><button class="secondary-btn top-action-btn" onclick="switchAccount()">تبديل حساب</button></div>
