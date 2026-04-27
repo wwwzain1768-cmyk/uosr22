@@ -1,13 +1,12 @@
-/* style.css */
 /* إعدادات عامة */
 * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
 body { background-color: #e9ecef; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding-top: 10px; }
 
-/* شريط حالة الاتصال */
-.status-banner { position: fixed; top: 0; left: 0; width: 100%; text-align: center; padding: 10px 46px 10px 12px; color: white; font-weight: bold; z-index: 10002; transition: background-color 0.3s; font-size: 1.1rem; }
-.status-banner.online { background-color: #27ae60; }
-.status-banner.offline { background-color: #e74c3c; }
-.status-banner.syncing { background-color: #f39c12; }
+/* شريط حالة الاتصال الجديد الصغير */
+.status-badge { position: fixed; top: 10px; left: 10px; padding: 5px 12px; border-radius: 6px; color: white; font-weight: bold; z-index: 10002; transition: background-color 0.3s; font-size: 0.9rem; pointer-events: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.status-badge.online { background-color: #27ae60; }
+.status-badge.offline { background-color: #e74c3c; }
+.status-badge.syncing { background-color: #f39c12; }
 
 /* تصميم الحاويات */
 .main-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
@@ -33,20 +32,6 @@ input[type="text"]:disabled { background-color: #f5f5f5; color: #95a5a6; cursor:
 .secondary-btn { width: 100%; padding: 15px; background-color: #e74c3c; color: white; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; transition: 0.3s; }
 .secondary-btn:hover { background-color: #c0392b; }
 .error-msg { color: #e74c3c; margin-top: 15px; font-weight: bold; }
-
-/* رسالة حجب البحث عند عدم الاتصال */
-.search-offline-block {
-    margin: -10px 30px 15px 30px;
-    padding: 12px 15px;
-    background: #fdecea;
-    color: #c0392b;
-    border: 2px solid #e74c3c;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 1rem;
-    animation: fadeIn 0.3s ease-out;
-}
 
 /* شاشة الترحيب المتحركة */
 .greeting-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44, 62, 80, 0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -79,9 +64,14 @@ input[type="text"]:disabled { background-color: #f5f5f5; color: #95a5a6; cursor:
 .customer-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef; text-align: right; cursor: pointer; transition: 0.3s; }
 .customer-item:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
+/* ألوان بطاقة الزبون */
+.customer-item.status-expired { background: #ffebee; border-color: #ffcdd2; }
+.customer-item.status-warning { background: #fff9c4; border-color: #fff59d; }
+.customer-item.status-good { background: #e3f2fd; border-color: #bbdefb; }
+
 /* تفاصيل الزبون المخفية */
 .customer-header { display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: bold; color: #2c3e50; }
-.customer-details { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #bdc3c7; animation: fadeInDown 0.3s ease-out; }
+.customer-details { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); animation: fadeInDown 0.3s ease-out; }
 .customer-details.show { display: block; }
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -103,14 +93,12 @@ input[type="text"]:disabled { background-color: #f5f5f5; color: #95a5a6; cursor:
 .delete-btn:hover { background-color: #c0392b; }
 .note-btn { background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1rem; cursor: pointer; transition: 0.3s; width: 100%;}
 .note-btn:hover { background-color: #2980b9; }
-.paid-badge { background-color: #ecf0f1; color: #27ae60; padding: 10px 20px; border-radius: 5px; font-weight: bold; border: 1px solid #27ae60; width: 100%; text-align: center;}
+.paid-badge { background-color: rgba(255, 255, 255, 0.6); color: #27ae60; padding: 10px 20px; border-radius: 5px; font-weight: bold; border: 1px solid #27ae60; width: 100%; text-align: center;}
 
 /* عناصر السجل */
-.history-item { padding: 10px; border-bottom: 1px solid #bdc3c7; font-size: 1rem; background: #f8f9fa; margin-bottom: 5px; border-radius: 5px;}
+.history-item { padding: 10px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); font-size: 1rem; background: rgba(255, 255, 255, 0.5); margin-bottom: 5px; border-radius: 5px;}
 .history-item:last-child { margin-bottom: 0; }
 
-.dismiss-status-btn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 6px; width: 32px; height: 32px; font-size: 1.3rem; cursor: pointer; }
-.dismiss-status-btn:hover { background: rgba(255,255,255,0.3); }
 .dashboard-top-actions { display: flex; gap: 10px; padding: 0 30px; margin: 0 0 20px 0; }
 .top-action-btn { width: auto; flex: 1; margin: 0; }
 .customer-name-wrap { display: flex; flex-direction: column; gap: 5px; }
