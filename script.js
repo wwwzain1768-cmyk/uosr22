@@ -1,4 +1,3 @@
-// script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
@@ -23,14 +22,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-
 let currentLoggedTowerCode = "";
 let currentLoggedTowerName = "";
 let editCustomerId = null;
 let allTowersData = [];
 let allCustomersData = [];
-let networkBannerDismissed = false;
-let searchBlockDismissed = false;
 let isSyncing = false;
 
 async function saveLoginState() {
@@ -67,78 +63,38 @@ function updateEndDateFromStartDate() {
     document.getElementById('endDate').value = calculateEndDateFromStartDate(startDate);
 }
 
-window.dismissSearchBlock = function() {
-    searchBlockDismissed = true;
-    document.getElementById('search-offline-block').style.display = 'none';
-    document.getElementById('searchInput').disabled = false;
-    document.getElementById('searchBtn').disabled = false;
-}
-
-// تحديث حالة توفر البحث حسب الاتصال
+// تحديث حالة توفر البحث (تم تعديلها ليكون البحث متاحاً دائماً)
 function updateSearchAvailability() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
-    const block = document.getElementById('search-offline-block');
-    if (!searchInput || !searchBtn || !block) return;
+    if (!searchInput || !searchBtn) return;
 
-    if (!navigator.onLine) {
-        if (searchBlockDismissed) {
-            searchInput.disabled = false;
-            searchBtn.disabled = false;
-            block.style.display = 'none';
-        } else {
-            // وضع عدم الاتصال: حجب البحث
-            searchInput.disabled = true;
-            searchInput.value = "";
-            searchBtn.disabled = true;
-            block.style.display = 'block';
-            // إلغاء أي تصفية نشطة
-            const items = document.querySelectorAll('.customer-item');
-            items.forEach(item => { item.style.display = ''; });
-        }
-    } else {
-        // وضع الاتصال: فتح البحث
-        searchBlockDismissed = false;
-        searchInput.disabled = false;
-        searchBtn.disabled = false;
-        block.style.display = 'none';
-    }
+    searchInput.disabled = false;
+    searchBtn.disabled = false;
 }
 
-// إدارة حالة الاتصال والمزامنة
+// إدارة حالة الاتصال والمزامنة (بالمؤشر الصغير)
 function updateNetworkStatus(status) {
     const banner = document.getElementById('network-status');
     const bannerText = document.getElementById('network-status-text');
-    banner.className = 'status-banner ' + status;
+    if (!banner || !bannerText) return;
+
+    banner.className = 'status-badge ' + status;
     if (status === 'online') {
-        networkBannerDismissed = false;
         banner.style.display = 'block';
-        bannerText.innerText = 'متصل بالإنترنت - البيانات محدثة';
+        bannerText.innerText = 'مباشر';
         setTimeout(() => { banner.style.display = 'none'; }, 2000);
     } else if (status === 'offline') {
-        if (networkBannerDismissed) {
-            banner.style.display = 'none';
-        } else {
-            banner.style.display = 'block';
-            bannerText.innerText = 'وضع عدم الاتصال (أوفلاين) - سيتم حفظ البيانات محلياً';
-        }
-    } else if (status === 'syncing') {
-        networkBannerDismissed = false;
         banner.style.display = 'block';
-        bannerText.innerText = 'جاري مزامنة البيانات...';
+        bannerText.innerText = 'غير متصل';
+    } else if (status === 'syncing') {
+        banner.style.display = 'block';
+        bannerText.innerText = 'جاري المزامنة...';
     }
-    // تحديث حالة البحث (لا يتأثر بـ dismiss الخاص بالشريط)
     updateSearchAvailability();
 }
 
-window.dismissNetworkStatus = function() {
-    networkBannerDismissed = true;
-    document.getElementById('network-status').style.display = 'none';
-    // ملاحظة: لا نغير حالة حجب البحث هنا - يبقى الحجب طالما أوفلاين
-}
-
 window.addEventListener('online', () => {
-    networkBannerDismissed = false;
     updateNetworkStatus('online');
     processSyncQueue();
 });
@@ -652,9 +608,11 @@ window.renderCustomers = function() {
     }
 
     towerCustomers.forEach(customer => {
-        // حساب موحد للانتهاء والمدة المتبقية (نهاية اليوم 23:59:59)
+        // حساب موحد للانتهاء والمدة المتبقية
         let diffMs = 0;
         let isExpired = true;
+        let remainingDays = 0;
+        
         if (customer.endDate) {
             let endDateTime = new Date(customer.endDate);
             if (customer.endDate.length <= 10) {
@@ -663,8 +621,17 @@ window.renderCustomers = function() {
             let now = new Date();
             diffMs = endDateTime - now;
             isExpired = diffMs <= 0;
+            remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
         }
         
+        // التعديل الثاني: تعيين صنف اللون حسب الأيام المتبقية
+        let bgClass = "status-good";
+        if (isExpired) {
+            bgClass = "status-expired";
+        } else if (remainingDays <= 3) {
+            bgClass = "status-warning";
+        }
+
         let cDebts = customer.debts || 0;
         let cPaid = customer.paid || 0;
         let originalPrice = parseFloat(customer.price || 0) + parseFloat(cDebts);
@@ -673,7 +640,7 @@ window.renderCustomers = function() {
         let currentDebt = Math.max(remaining, 0);
 
         let itemDiv = document.createElement('div');
-        itemDiv.className = 'customer-item';
+        itemDiv.className = 'customer-item ' + bgClass; // إضافة كلاس اللون للبطاقة
         
         itemDiv.onclick = function(e) {
             if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'textarea') return;
@@ -692,7 +659,6 @@ window.renderCustomers = function() {
             paymentHTML = `<button class="pay-btn" onclick="paySubscription(${customer.id})">تسديد</button>`;
         }
 
-        // صياغة نص المدة المتبقية (يوم/ساعة/دقيقة) بشكل متسق مع isExpired
         let remainingText = 'منتهي';
         if (!isExpired) {
             let totalMinutes = Math.floor(diffMs / (1000 * 60));
@@ -724,7 +690,7 @@ window.renderCustomers = function() {
                 <span style="font-size: 0.9rem; color: ${isExpired ? '#e74c3c' : '#27ae60'}">${remainingText}</span>
             </div>
             <div class="customer-details" id="details-${customer.id}">
-                <div class="top-note-section" style="margin-bottom: 15px; padding: 10px; background: #ecf0f1; border-radius: 8px;">
+                <div class="top-note-section" style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.6); border-radius: 8px;">
                     <button class="note-btn" onclick="toggleInlineNote(event)" style="margin-bottom: 0;">ملاحظات خاصة</button>
                     <div class="inline-note-container" style="display: none; margin-top: 10px;">
                         <textarea class="inline-note-text" style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #bdc3c7; border-radius: 5px; outline: none; font-size: 1rem; resize: none; overflow: hidden; font-family: inherit;" onclick="event.stopPropagation()" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${safeNote}</textarea>
@@ -890,7 +856,6 @@ window.editCustomer = function(id) {
         window.scrollTo(0, 0);
     }
 }
-
 
 document.getElementById('startDate').addEventListener('change', updateEndDateFromStartDate);
 
